@@ -1,0 +1,6 @@
+tensorflow==2.15.0
+tensorflow-ranking==0.5.5
+tensorflow-recommenders==0.7.3
+numpy==1.26.4
+pandas==2.3.0
+matplotlib==3.9.4
