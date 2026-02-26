@@ -1,4 +1,4 @@
-import ast, numpy as np, pandas as pd, tensorflow as tf
+import ast, numpy as np, pandas as pd, tensorflow as tf, json
 from collections import Counter
 
 # ------------------------------------------------------------
@@ -98,7 +98,12 @@ def build_user_map(interactions_df: pd.DataFrame, game_map: dict, top_n: int = 1
             'top_tag': top_tag,
             'genre_dominance': genre_dominance,
             'genre_diversity': len(genre_counter)
-        })
+        })        
+    
+    with open("./recommendation/aux_files/lang_id_map.json", "w", encoding="utf-8") as f:
+        json.dump(langs_map, f, ensure_ascii=False, indent=4)
+
+    print("Language ID map salvo em recommendation/aux_files/lang_id_map.json")
 
     user_map = {u['steamid']: u for u in users}
     return user_map, len(langs_map) + 1

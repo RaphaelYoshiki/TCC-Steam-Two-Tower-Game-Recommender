@@ -9,6 +9,31 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.optimizers import AdamW
 from matplotlib import pyplot as plt
 
+# ---------------- CONFIGURAÇÕES ----------------
+TRAIN_NUM = 27
+INTERACTIONS_FILE = './csv_files/cleaned_interactions_shuffled.csv'
+GAMES_CSV = './csv_files/treated_dataframe.csv'
+BATCH_SIZE = 512
+EMBEDDING_DIM = 512
+EPOCHS = 50
+MODEL_SAVE_PATH = f'./models/two_tower_realusers_{TRAIN_NUM}.keras'
+LOSS_PLOT = f'./model_plots/loss_plot_{TRAIN_NUM}.png'
+MAP_PLOT = f'./model_plots/map_plot_{TRAIN_NUM}.png'
+NDCG_PLOT = f'./model_plots/ndcg_plot_{TRAIN_NUM}.png'
+RANKING_METRICS_PLOT = f'./model_plots/ranking_metrics_plot_{TRAIN_NUM}.png'
+ROC_PLOT = f'./model_plots/roc_curve_{TRAIN_NUM}.png'
+HISTORY_LOG = f'./model_plots/history_{TRAIN_NUM}.txt'
+NEG_K = 7
+VAL_SPLIT = 0.2
+TOP_N = 8
+PICKLE_DIR = './pickle_files'
+GAME_MAP_PATH = f'{PICKLE_DIR}/game_map.pkl'
+USER_MAP_PATH = f'{PICKLE_DIR}/user_map.pkl'
+UNIQUE_LANGS_PATH = f'{PICKLE_DIR}/unique_langs.pkl'
+GAME_MAX_LENGTHS_PATH = f'{PICKLE_DIR}/game_max_lengths.pkl'
+UNIQUE_IDS_PATH = f'{PICKLE_DIR}/unique_ids.pkl'
+# ------------------------------------------------
+
 # Importações atualizadas
 from data_prep import (
     load_games_dataframe, 
@@ -20,28 +45,6 @@ from data_prep import (
 )
 from two_tower_model import create_two_tower_model
 
-# ---------------- CONFIGURAÇÕES ----------------
-TRAIN_NUM = 25
-INTERACTIONS_FILE = './csv_files/cleaned_interactions_shuffled.csv'
-GAMES_CSV = './csv_files/treated_dataframe.csv'
-BATCH_SIZE = 512
-EMBEDDING_DIM = 512
-EPOCHS = 50
-MODEL_SAVE_PATH = f'./models/two_tower_realusers_{TRAIN_NUM}.keras'
-LOSS_PLOT = f'./model_plots/loss_plot_{TRAIN_NUM}.png'
-MAP_PLOT = f'./model_plots/map_plot_{TRAIN_NUM}.png'
-NDCG_PLOT = f'./model_plots/ndcg_plot_{TRAIN_NUM}.png'
-RANKING_METRICS_PLOT = f'./model_plots/ranking_metrics_plot_{TRAIN_NUM}.png'
-NEG_K = 7
-VAL_SPLIT = 0.2
-TOP_N = 8
-PICKLE_DIR = './pickle_files'
-GAME_MAP_PATH = f'{PICKLE_DIR}/game_map.pkl'
-USER_MAP_PATH = f'{PICKLE_DIR}/user_map.pkl'
-UNIQUE_LANGS_PATH = f'{PICKLE_DIR}/unique_langs.pkl'
-GAME_MAX_LENGTHS_PATH = f'{PICKLE_DIR}/game_max_lengths.pkl'
-UNIQUE_IDS_PATH = f'{PICKLE_DIR}/unique_ids.pkl'
-# ------------------------------------------------
 # DEBUG
 # ------------------------------------------------
 def check_data_leakage(train_interactions, test_interactions, user_map, game_map):
@@ -181,6 +184,31 @@ def tf_auc_score(all_true, all_pred):
     auc_metric.update_state(all_true, all_pred)
     return auc_metric.result().numpy()
 
+
+def compute_roc_auc(y_true, y_score):
+    """Compute ROC curve and AUC manually using numpy."""
+    import numpy as _np
+    y_true_arr = _np.array(y_true, dtype=_np.float32)
+    y_score_arr = _np.array(y_score, dtype=_np.float32)
+    if len(y_true_arr) == 0:
+        return _np.array([0.0, 1.0]), _np.array([0.0, 1.0]), 0.0
+    # sort by score descending
+    desc = _np.argsort(y_score_arr)[::-1]
+    y_true_sorted = y_true_arr[desc]
+    P = _np.sum(y_true_sorted)
+    N = len(y_true_sorted) - P
+    if P == 0 or N == 0:
+        fpr = _np.array([0.0, 1.0])
+        tpr = _np.array([0.0, 1.0])
+        auc_val = 0.0
+    else:
+        tpr = _np.cumsum(y_true_sorted) / P
+        fpr = _np.cumsum(1 - y_true_sorted) / N
+        tpr = _np.concatenate(([0.0], tpr))
+        fpr = _np.concatenate(([0.0], fpr))
+        auc_val = _np.trapz(tpr, fpr)
+    return fpr, tpr, auc_val
+
 # ------------------------------------------------
 # Callback
 # ------------------------------------------------
@@ -319,24 +347,46 @@ def pickle_files_exist():
 # ------------------------------------------------
 # Plotagem de gráficos de métricas
 # ------------------------------------------------
+
+def save_history_txt(history, file_path):
+    """Escreve o histórico de treino em um arquivo de texto e adiciona máximos das métricas."""
+    with open(file_path, 'w') as f:
+        f.write('Epoch')
+        for key in history.history.keys():
+            f.write(f', {key}')
+        f.write('\n')
+        num_epochs = len(next(iter(history.history.values())))
+        for i in range(num_epochs):
+            f.write(str(i + 1))
+            for key in history.history.keys():
+                f.write(f', {history.history[key][i]:.6f}')
+            f.write('\n')
+        f.write('\n# Máximos por métrica\n')
+        for key, values in history.history.items():
+            f.write(f'{key}: {max(values):.6f}\n')
+    print(f"📄 Histórico de treino salvo em: {file_path}")
 def plot_metric(train_key, val_key, title, ylabel, history, epochs, save_path):
+    """Bar chart version of the metric plot."""
     plt.figure(figsize=(10, 4))
     train = history.history.get(train_key, [])
     val = history.history.get(val_key, [])
-    if train: 
-        plt.plot(epochs, train, label='Treino')
-    if val: 
-        plt.plot(epochs, val, label='Validação')
+    # convert epochs to numpy array for offsetting
+    epochs_arr = np.array(list(epochs))
+    width = 0.35
+    if train:
+        plt.bar(epochs_arr - width/2, train, width, label='Treino', alpha=0.7)
+    if val:
+        plt.bar(epochs_arr + width/2, val, width, label='Validação', alpha=0.7)
     plt.xlabel('Epoch')
     plt.ylabel(ylabel)
     plt.title(title)
     plt.legend()
-    plt.grid(True)
+    plt.grid(True, axis='y', alpha=0.3)
     plt.savefig(save_path)
     plt.close()
     
 def plot_ranking_metrics(ranking_metrics, save_path):
-    """Plotar métricas de ranking @K"""
+    """Plotar métricas de ranking @K como gráficos de barras"""
     plt.figure(figsize=(12, 8))
     
     # Extrair métricas por tipo
@@ -347,33 +397,38 @@ def plot_ranking_metrics(ranking_metrics, save_path):
     # Extrair valores K
     k_values = [int(k.split('@')[1]) for k in precisions.keys()]
     k_values.sort()
+    width = 0.4
+    idx = np.arange(len(k_values))
     
     # Plotar Precision@K
     plt.subplot(2, 2, 1)
     precision_values = [precisions[f'precision@{k}'] for k in k_values]
-    plt.plot(k_values, precision_values, 'o-', color='blue', linewidth=2, markersize=8)
+    plt.bar(idx, precision_values, width, color='blue', alpha=0.7)
     plt.xlabel('K')
     plt.ylabel('Precision')
     plt.title('Precision@K')
-    plt.grid(True, alpha=0.3)
+    plt.xticks(idx, k_values)
+    plt.grid(True, axis='y', alpha=0.3)
     
     # Plotar Recall@K
     plt.subplot(2, 2, 2)
     recall_values = [recalls[f'recall@{k}'] for k in k_values]
-    plt.plot(k_values, recall_values, 'o-', color='green', linewidth=2, markersize=8)
+    plt.bar(idx, recall_values, width, color='green', alpha=0.7)
     plt.xlabel('K')
     plt.ylabel('Recall')
     plt.title('Recall@K')
-    plt.grid(True, alpha=0.3)
+    plt.xticks(idx, k_values)
+    plt.grid(True, axis='y', alpha=0.3)
     
     # Plotar NDCG@K
     plt.subplot(2, 2, 3)
     ndcg_values = [ndcgs[f'ndcg@{k}'] for k in k_values]
-    plt.plot(k_values, ndcg_values, 'o-', color='red', linewidth=2, markersize=8)
+    plt.bar(idx, ndcg_values, width, color='red', alpha=0.7)
     plt.xlabel('K')
     plt.ylabel('NDCG')
     plt.title('NDCG@K')
-    plt.grid(True, alpha=0.3)
+    plt.xticks(idx, k_values)
+    plt.grid(True, axis='y', alpha=0.3)
     
     # Adicionar AUC como texto
     plt.subplot(2, 2, 4)
@@ -571,11 +626,49 @@ def main():
     print("✅ Treinamento concluído.")
     model.save(MODEL_SAVE_PATH)
 
+    # salvar histórico em texto
+    save_history_txt(history, HISTORY_LOG)
+
     # ---------------- Avaliar ----------------
     print("📊 Avaliando modelo no conjunto de teste...")
     results = model.evaluate(ds_test, verbose=1)
     print(f"Resultados de avaliação: {results}")
-    
+
+    # ---------------- Curva ROC ----------------
+    print("📈 Gerando curva ROC...")
+    y_true = []
+    y_pred = []
+    # percorrer dataset de teste uma vez
+    for batch in ds_test:
+        inputs, labels = batch
+        preds = model.predict(inputs, verbose=0)
+        # handle both tensor and numpy outputs
+        scores = preds['score']
+        if hasattr(scores, 'numpy'):
+            scores = scores.numpy()
+        y_pred.extend(scores.flatten().tolist())
+        lbls = labels['score']
+        if hasattr(lbls, 'numpy'):
+            lbls = lbls.numpy()
+        y_true.extend(lbls.flatten().tolist())
+    if y_true and y_pred:
+        fpr, tpr, roc_auc = compute_roc_auc(y_true, y_pred)
+        plt.figure(figsize=(6, 6))
+        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.4f})')
+        plt.plot([0, 1], [0, 1], color='navy', lw=1, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC Curve')
+        plt.legend(loc='lower right')
+        plt.grid(True)
+        plt.savefig(ROC_PLOT)
+        plt.close()
+        print(f"📂 Curva ROC salva em: {ROC_PLOT}")
+    else:
+        print("⚠️ Não foi possível calcular ROC (sem dados de verdadeiros ou previsões)")
+
     print("📊 Computando métricas de ranking...")
     ranking_metrics = compute_ranking_metrics(
         model, test_user_lists, user_map, game_map, game_max_lengths, 

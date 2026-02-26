@@ -72,7 +72,10 @@ def create_two_tower_model(user_max_lengths, game_max_lengths, embedding_dim,
     game_emb = TimeDistributed(Dense(embedding_dim, activation=None, kernel_regularizer=dense_reg))(game_dense)
     
     # ---------- Similaridade e saídas ----------
-    dot = tf.reduce_sum(user_emb * game_emb, axis=-1)
+    user_emb_norm = tf.math.l2_normalize(user_emb, axis=-1)
+    game_emb_norm = tf.math.l2_normalize(game_emb, axis=-1)
+    
+    dot = tf.reduce_sum(user_emb_norm * game_emb_norm, axis=-1)
     score_out = tf.keras.layers.Activation('linear', name='score')(dot)
 
     model = Model(
