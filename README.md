@@ -1,4 +1,4 @@
-# Game Recommender System 🎮
+# Game Recommender System
 
 Um sistema inteligente de recomendação de jogos baseado em machine learning com backend em FastAPI e interface gráfica em Toga. O sistema utiliza um modelo Two-Tower para gerar recomendações personalizadas com suporte a chat via integração com DeepSeek.
 
@@ -182,7 +182,7 @@ A nova API **não é de acesso público** e exige uma conta de parceiro Steamwor
 - Copie o arquivo para `csv_files/`
 - Se necessário, renomeie o arquivo para `cleaned_interactions_shuffled.csv`
 
-### 🚀 Passo a Passo de Execução (Usando Dados Pré-coletados)
+### Passo a Passo de Execução (Usando Dados Pré-coletados)
 
 #### **Passo 0: Baixe o arquivo pré-processado**
 ```bash
@@ -367,24 +367,6 @@ A nova API **não é pública** e requer:
 - `pickle_files/game_map.pkl` - Mapeamento de IDs de jogos
 - `pickle_files/game_max_lengths.pkl` - Comprimentos máximos de sequências
 
-## Docker
-
-### Build da Imagem
-
-```bash
-docker build -f Dockerfile.txt -t game-recommender:latest .
-```
-
-### Executar Container
-
-```bash
-# Backend
-docker run -p 8000:8000 game-recommender:latest
-
-# Com volume para modelos
-docker run -p 8000:8000 -v $(pwd)/models:/app/models game-recommender:latest
-```
-
 ## Arquitetura do Modelo Two-Tower
 
 ### Torre do Usuário
@@ -403,34 +385,9 @@ docker run -p 8000:8000 -v $(pwd)/models:/app/models game-recommender:latest
 - Dot product entre representações
 - Top-K retrieval para recomendações finais
 
-## Monitoramento
-
-Históricos de treinamento disponíveis em:
-- `model_plots/history_27.txt` - Logs do treinamento
-
-## Contribuindo
-
-Para contribuir com melhorias:
-
-1. Crie uma branch para sua feature
-2. Faça commits com mensagens claras
-3. Submit um pull request
-
-## Próximos Passos
-
-- [ ] Implementar cache de recomendações
-- [ ] Adicionar suporte a batch predictions
-- [ ] Melhorar tratamento de cold-start
-- [ ] Deploy em produção
-- [ ] Monitoring e logging avançado
-
 ## Licença
 
 Projeto acadêmico - TCC (Trabalho de Conclusão de Curso)
-
-## Contato
-
-Para dúvidas ou sugestões, abra uma issue no repositório.
 
 ---
 
@@ -438,7 +395,7 @@ Para dúvidas ou sugestões, abra uma issue no repositório.
 
 ---
 
-# Game Recommender System 🎮 (English Version)
+# Game Recommender System (English Version)
 
 An intelligent game recommendation system based on machine learning with FastAPI backend and Toga graphical interface. The system uses a Two-Tower model to generate personalized recommendations with chat support through DeepSeek integration.
 
@@ -622,7 +579,7 @@ The new API **is not public** and requires a Steamworks partner account with adm
 - Place it in `csv_files/`
 - Rename it to `cleaned_interactions_shuffled.csv` if needed
 
-### 🚀 Step-by-Step Execution (Using Pre-collected Data)
+### Step-by-Step Execution (Using Pre-collected Data)
 
 #### Step 0: Place the preprocessed file
 ```bash
@@ -682,7 +639,7 @@ The main training hyperparameters are defined in `scripts/two_tower_training.py`
 - `VAL_SPLIT`: fraction of users reserved for validation. More validation data improves evaluation reliability but reduces training data.
 - `TOP_N`: number of positive interactions per user included in the training list. Affects the richness of positive signal and dataset size.
 
-### 📋 Script Details
+### Script Details
 
 | Script | Function | Input Files | Output Files |
 |--------|----------|-------------|--------------|
@@ -741,9 +698,9 @@ python gui_app.py
 ```
 
 The application provides:
-- 💬 Conversational chat interface
-- 🎮 Real-time game recommendations
-- 🤖 DeepSeek integration for natural interactions
+- Conversational chat interface
+- Real-time game recommendations
+- DeepSeek integration for natural interactions
 
 ## Model Training
 
@@ -806,24 +763,6 @@ The new API **is not public** and requires:
 - `pickle_files/game_map.pkl` - Game ID mapping
 - `pickle_files/game_max_lengths.pkl` - Maximum sequence lengths
 
-## Docker
-
-### Build Image
-
-```bash
-docker build -f Dockerfile.txt -t game-recommender:latest .
-```
-
-### Run Container
-
-```bash
-# Backend
-docker run -p 8000:8000 game-recommender:latest
-
-# With volume for models
-docker run -p 8000:8000 -v $(pwd)/models:/app/models game-recommender:latest
-```
-
 ## Two-Tower Model Architecture
 
 ### User Tower
@@ -842,34 +781,9 @@ docker run -p 8000:8000 -v $(pwd)/models:/app/models game-recommender:latest
 - Dot product between representations
 - Top-K retrieval for final recommendations
 
-## Monitoring
-
-Training histories available in:
-- `model_plots/history_27.txt` - Training logs
-
-## Contributing
-
-To contribute improvements:
-
-1. Create a branch for your feature
-2. Make commits with clear messages
-3. Submit a pull request
-
-## Next Steps
-
-- [ ] Implement recommendation caching
-- [ ] Add batch predictions support
-- [ ] Improve cold-start handling
-- [ ] Production deployment
-- [ ] Advanced monitoring and logging
-
 ## License
 
 Academic project - TCC (Final Course Project)
-
-## Contact
-
-For questions or suggestions, open an issue in the repository.
 
 ---
 
