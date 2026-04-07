@@ -1,4 +1,4 @@
-# two_tower_training_NOCHUNK.py — versão atualizada para modelo Two-Tower com dados reais de interação de usuário
+# two_tower_training.py — versão atualizada para modelo Two-Tower com dados reais de interação de usuário
 import os
 import numpy as np
 import tensorflow as tf
